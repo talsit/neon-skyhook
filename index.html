@@ -123,7 +123,7 @@
 				<button data-v="people" style="--c:#00f0ff"><b>1</b>PEOPLE<small>folks, VIPs, big folks &amp; kids</small></button>
 				<button data-v="creatures" style="--c:#a6ff00"><b>2</b>CREATURES<small>dragons, unicorns, dinosaurs</small></button>
 				<button data-v="animals" style="--c:#ffe600"><b>3</b>FRIENDLY ANIMALS<small>dogs, cats, bunnies, pigs</small></button>
-				<button data-v="fat" style="--c:#ff8a00"><b>4</b>JUST FAT PEOPLE<small>heavy lifting!</small></button>
+				<button data-v="hippos" style="--c:#ff8a00"><b>4</b>JUST HIPPOS<small>heavy lifting!</small></button>
 				<button data-v="kids" style="--c:#ff2bd6"><b>5</b>JUST KIDS<small>suuuper long chains</small></button>
 			</div>
 			<div class="pair">
@@ -150,7 +150,7 @@
 			</div>
 			<button class="go" id="loadGo">▶ START<small>ENTER</small></button>
 		</div>
-		<div class="howto">ARROWS or thumb-slide to fly · touch a raised hand with your skid · the next one grabs the last one's feet<br>lower them gently onto a HOSPITAL roof · mind the spires &amp; your rotor · M = sound</div>
+		<div class="howto">ARROWS or thumb-slide to fly · touch a raised hand with your skid · the next one grabs the last one's feet<br>lower them gently onto a HOSPITAL roof · mind the spires &amp; your rotor · SPACE = water bomb (inferno) · M = sound</div>
 		<div class="copy">© 1987 SKYHOOK INDUSTRIES · INSERT COIN</div>
 	</div>
 	<div class="scan"></div>
@@ -169,7 +169,7 @@
 	document.getElementById('loadCity').innerHTML = svg;
 	const fill = document.getElementById('loadFill'), status = document.getElementById('loadStatus'), menu = document.getElementById('loadMenu');
 	// menu state (remembered between visits)
-	const CASTS = ['people', 'creatures', 'animals', 'fat', 'kids'];
+	const CASTS = ['people', 'creatures', 'animals', 'hippos', 'kids'];
 	const cfg = { cast: 'people', amount: 'standard', invincible: '0', crash: '1', world: 'city' };
 	try { Object.assign(cfg, JSON.parse(localStorage.getItem('skyhookMenu') || '{}')); } catch (e) {}
 	const paint = () => menu.querySelectorAll('.opts').forEach(g => g.querySelectorAll('button').forEach(b => b.classList.toggle('sel', cfg[g.dataset.key] === b.dataset.v)));
@@ -227,7 +227,7 @@ const CASTS = {
 	people:    { name: 'PEOPLE',     w: 1,    L: 25, pick: q => q < 0.12 ? 'vip' : q < 0.34 ? 'fat' : q < 0.5 ? 'kid' : 'normal' },
 	creatures: { name: 'CREATURES',  w: 1.5,  L: 29, pick: q => q < 0.38 ? 'dino' : q < 0.72 ? 'dragon' : 'unicorn' },
 	animals:   { name: 'ANIMALS',    w: 0.65, L: 21, pick: q => q < 0.6 ? 'dog' : q < 0.74 ? 'cat' : q < 0.88 ? 'bunny' : 'pig' },
-	fat:       { name: 'FAT PEOPLE', w: 2,    L: 26, pick: () => 'fat' },
+	hippos:    { name: 'HIPPOS',     w: 2,    L: 26, pick: () => 'hippo' },
 	kids:      { name: 'KIDS',       w: 0.5,  L: 18, pick: () => 'kid' },
 };
 const qs = new URLSearchParams(location.search);
@@ -268,6 +268,7 @@ const TYPES = {
 	cat:     { w: 0.5, L: 20, lum: 0.9,  pts: 200, pen: 200, neon: N_ORANGE, say: 'MEOW!',  thanks: 'PURRFECT!' },
 	bunny:   { w: 0.5, L: 20, lum: 0.9,  pts: 200, pen: 200, neon: N_CYAN,   say: 'EEP!',   thanks: 'HOPPY!' },
 	pig:     { w: 1.5, L: 22, lum: 0.9,  pts: 250, pen: 250, neon: N_PINK,   say: 'OINK!',  thanks: 'OINKTASTIC!' },
+	hippo:   { w: 2,   L: 26, lum: 0.9,  pts: 150, pen: 150, neon: N_PURPLE, say: 'HRUMPH!', thanks: 'HIPPO HOORAY!' },
 };
 const pickCast = q => CASTS[M.cast].pick(q);
 
@@ -908,6 +909,7 @@ function genSphere(seed) {
 }
 const isBoss = n => n % 3 === 0;                                              // every 3rd city is on fire
 const amountBurn = () => cfg.amount === 'mega' ? [110, 190] : [75, 130];      // seconds a building burns before it's gone
+const WATER_MAX = 4;                                                          // water bombs the tank holds in the INFERNO
 const jetOn = (j, t) => ((t + j.phase) % j.period) < 1.3;                     // flame jet blasting
 const jetWarn = (j, t) => { const m = (t + j.phase) % j.period; return m > j.period - 0.8; }; // flickering just before
 function makeTri(c) {
@@ -1027,9 +1029,9 @@ function startLevel(n, forceBoss) {
 	level = n; L = M.sphere ? genSphere(baseSeed + n - 1) : genLevel(baseSeed + n - 1, forceBoss || isBoss(n));
 	CEIL = L.sphere ? L.ceil : GROUND - M.maxSpire - M.clear;
 	levelStartScore = score; crashes = 0;
-	chains = []; particles = []; floats = []; walkers = []; sparks = []; disco = -1; rockets = []; streamers = [];
+	chains = []; particles = []; floats = []; walkers = []; sparks = []; drops = []; disco = -1; rockets = []; streamers = [];
 	stats = { saved: 0, lost: 0, gone: 0, total: L.people.length };
-	banner = { text: L.boss ? 'BOSS: INFERNO — THE CITY IS ON FIRE!' : L.sphere ? 'DOGGO SPHERE — LIFT THE PILE!' : 'LEVEL ' + n, t: L.boss || L.sphere ? 3.5 : 2 };
+	banner = { text: L.boss ? 'BOSS: INFERNO — SPACE DROPS WATER!' : L.sphere ? 'DOGGO SPHERE — LIFT THE PILE!' : 'LEVEL ' + n, t: L.boss || L.sphere ? 3.5 : 2 };
 	renderer.setClearColor(L.boss ? 0x120303 : 0x030405);
 	if (L.boss) sfx.siren();
 	buildScene();
@@ -1038,7 +1040,7 @@ function startLevel(n, forceBoss) {
 }
 function spawnHeli() {
 	const sp = L.spawn || { x: L.hosps[0].padX, y: L.hosps[0].roofY - 70 };
-	heli = { x: sp.x, y: sp.y, vx: 0, vy: 0, face: 1, dead: false, respawn: 0, hold: 0 };
+	heli = { x: sp.x, y: sp.y, vx: 0, vy: 0, face: 1, dead: false, respawn: 0, hold: 0, water: WATER_MAX };
 	hc = { pts: [{ x: heli.x, y: heli.y + 16, px: heli.x, py: heli.y + 16, m: 1 }], persons: [], pinned: true, over: 0 };
 	camX = heli.x; camY = heli.y;
 }
@@ -1047,7 +1049,7 @@ function snapshot() {
 	const idx = p => L.people.indexOf(p);
 	const pt = p => ({ x: p.x, y: p.y, px: p.px, py: p.py, m: p.m });
 	return {
-		heli: { x: heli.x, y: heli.y, face: heli.face },
+		heli: { x: heli.x, y: heli.y, face: heli.face, water: heli.water },
 		people: L.people.map(p => ({ state: p.state, fx: p.fx, fy: p.fy, grace: p.grace || 0 })),
 		hc: { pts: hc.pts.map(pt), persons: hc.persons.map(idx) },
 		chains: chains.map(c => ({ ...c, pts: c.pts.map(pt), persons: c.persons.map(idx), hits: null })),
@@ -1067,7 +1069,7 @@ function restore(cp) {
 	stats = { ...cp.stats };
 	if (cp.fire) { L.buildings.forEach((b, i) => { if (cp.fire[i]) b.fire = { ...cp.fire[i] }; }); L.spreadT = cp.spreadT; L.fireLost = cp.fireLost; }
 	score = cp.score - CRASH_PEN * (crashes - cp.crashes);   // crash penalties survive the rewind
-	floats = [];
+	floats = []; drops = [];
 	camX = heli.x; camY = heli.y;
 }
 function load() { let s = 0; for (const p of hc.persons) s += p.w; return s; }
@@ -1147,6 +1149,10 @@ const sfx = {
 	crackle() { noise(0.02 + Math.random() * 0.04, { vol: 0.05 + Math.random() * 0.08, type: 'highpass', freq: 1500 + Math.random() * 3000 }); },
 	whoosh() { noise(0.6, { vol: 0.22, type: 'bandpass', freq: 400, to: 1800, q: 1.2 }); },
 	collapse() { noise(1.6, { vol: 0.5, freq: 600, to: 60 }); tone(55, 1.2, { type: 'sine', vol: 0.3, slide: 30 }); },
+	drop() { tone(700, 0.25, { type: 'sine', vol: 0.07, slide: 250 }); noise(0.2, { vol: 0.08, type: 'bandpass', freq: 900, q: 2 }); },
+	splash() { noise(0.35, { vol: 0.25, freq: 1600, to: 250 }); },
+	hiss() { noise(0.35, { vol: 0.25, freq: 1600, to: 250 }); noise(1.4, { vol: 0.28, type: 'highpass', freq: 5000, to: 1500, when: 0.05 }); },
+	refill() { for (let i = 0; i < 6; i++) tone(400 + i * 120, 0.1, { type: 'sine', vol: 0.06, when: i * 0.05 }); noise(0.5, { vol: 0.12, type: 'bandpass', freq: 700, to: 1400, q: 1.5 }); },
 	boing() { tone(180, 0.3, { type: 'sine', vol: 0.12, slide: 700 }); tone(700, 0.18, { type: 'sine', vol: 0.06, when: 0.18, slide: 350 }); },
 	// every creature has a voice
 	voice(type, force) {
@@ -1156,6 +1162,7 @@ const sfx = {
 			case 'dog': return sfx.bark(true);
 			case 'cat': tone(620 * r, 0.14, { type: 'triangle', vol: 0.07, slide: 900 * r }); tone(900 * r, 0.35, { type: 'triangle', vol: 0.07, when: 0.13, slide: 520 * r }); return;
 			case 'bunny': for (let i = 0; i < 3; i++) tone(2200 * r, 0.05, { type: 'sine', vol: 0.05, when: i * 0.07, slide: 3000 * r }); return;
+			case 'hippo': for (const w of [0, 0.3]) { tone(95 * r, 0.3, { type: 'sawtooth', vol: 0.09, when: w, slide: 70 * r }); noise(0.25, { vol: 0.12, when: w, freq: 400, to: 150 }); } return; // big wet honk
 			case 'pig': for (const w of [0, 0.22]) { tone(170 * r, 0.16, { type: 'sawtooth', vol: 0.07, when: w, slide: 120 * r }); noise(0.14, { vol: 0.1, when: w, type: 'bandpass', freq: 500, q: 3 }); } return;
 			case 'dino': tone(120 * r, 0.8, { type: 'sawtooth', vol: 0.1, slide: 55 }); noise(0.8, { vol: 0.25, freq: 900, to: 150 }); return;
 			case 'dragon': tone(160 * r, 0.45, { type: 'sawtooth', vol: 0.08, slide: 80 }); noise(0.7, { vol: 0.25, type: 'highpass', freq: 3000, to: 400, when: 0.25 }); return; // roar + fire whoosh
@@ -1197,6 +1204,7 @@ addEventListener('keydown', e => {
 		else if (e.code === 'Enter' || e.code === 'Space') pauseSel ? toMenu() : resume();
 		return;
 	}
+	if (e.code === 'Space' && state === 'play') { e.preventDefault(); if (!e.repeat) dropWater(); return; }
 	if ((e.code === 'Escape' || e.code === 'KeyP') && !e.repeat) { state === 'play' ? pause() : toMenu(); return; }
 	if (!e.repeat && state === 'done' && !/^(Shift|Control|Alt|Meta)/.test(e.code) && e.code !== 'KeyM') advance(); // any key moves on
 });
@@ -1214,7 +1222,7 @@ function onTouch(e) {
 	if (e.type === 'touchstart' && state !== 'play') { const t = e.changedTouches[0]; if (onMenuBtn(t.clientX, t.clientY)) toMenu(); else advance(); return; }
 	if (e.type === 'touchstart') { const b = muteBtn(), t = e.changedTouches[0]; if (Math.hypot(t.clientX - b.x, t.clientY - b.y) < b.r) { setMuted(!SFX.muted); return; } }
 	for (const t of e.changedTouches) {
-		if (e.type === 'touchstart') { if (joy.id === null) { joy.id = t.identifier; joy.ox = joy.x = t.clientX; joy.oy = joy.y = t.clientY; } }
+		if (e.type === 'touchstart') { if (joy.id === null) { joy.id = t.identifier; joy.ox = joy.x = t.clientX; joy.oy = joy.y = t.clientY; } else dropWater(); } // second thumb = water
 		else if (t.identifier === joy.id) {
 			if (e.type === 'touchmove') {
 				joy.x = t.clientX; joy.y = t.clientY;
@@ -1594,7 +1602,7 @@ function update(dt) {
 			chains.splice(i, 1);
 		}
 	}
-	if (L.boss) updateFire(dt);
+	if (L.boss) { updateFire(dt); updateWater(dt); }
 	// waiting dogs near the heli bark now and then
 	for (const p of L.people) if (TYPES[p.type].say && p.state === 'wait' && Math.abs(p.fx - heli.x) < 260 && Math.abs(p.fy - heli.y) < 260 && Math.random() < dt * 0.5) sfx.voice(p.type);
 	// saved folks walk into the stairwell
@@ -1662,13 +1670,51 @@ function updateFire(dt) {
 	}
 	if (near && Math.random() < dt * (6 + near * 4)) sfx.crackle();
 }
+// WATER: space drops a water bomb; each one that lands on a burning building puts it out for good.
+// The tank holds WATER_MAX; set down on a hospital roof to fill it back up.
+let drops = [];
+function dropWater() {
+	if (!L.boss || state !== 'play' || heli.dead) return;
+	if (heli.water <= 0) { addFloat(heli.x, heli.y - 40, 'TANK EMPTY — LAND ON A HOSPITAL'); sfx.alarm(); return; }
+	heli.water--;
+	drops.push({ x: heli.x, y: heli.y + 18, vx: heli.vx * 0.8, vy: Math.max(40, heli.vy * 0.5 + 60) });
+	sfx.drop();
+}
+function douse(b) {
+	b.fire.state = 'doused'; score += 50;
+	const top = b.tiers[b.tiers.length - 1];
+	addFloat(b.x + b.w / 2, top.y - 40, 'FIRE OUT! +50'); sfx.hiss();
+	for (const t of b.tiers) for (let i = 0; i < t.w / 3; i++) spark(t.x + Math.random() * t.w, t.y, { shape: 3, spin: 0, vx: (Math.random() - 0.5) * 30, vy: -40 - Math.random() * 70, life: 1.5 + Math.random() * 1.5, size: 30 + Math.random() * 40, col: [0.35, 0.38, 0.42] });
+}
+function updateWater(dt) {
+	// sitting on a hospital roof refills the tank
+	const hs = hospitalAt(heli.x);
+	if (!heli.dead && heli.water < WATER_MAX && hs && Math.abs(heli.y + 17 - hs.roofY) < 3) { heli.water = WATER_MAX; sfx.refill(); addFloat(heli.x, heli.y - 40, 'WATER REFILLED'); }
+	for (let i = drops.length - 1; i >= 0; i--) {
+		const d = drops[i];
+		d.vy += G * 0.8 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.vx *= 1 - 0.5 * dt;
+		spark(d.x, d.y, { shape: 3, spin: 0, life: 0.18, size: 26, col: [0.2, 0.55, 1] });   // the blob, with a glinting trail
+		if (Math.random() < 0.5) spark(d.x + (Math.random() - 0.5) * 8, d.y, { vx: (Math.random() - 0.5) * 20, vy: -10, life: 0.3, size: 7, tw: 20, col: [0.5, 0.85, 1] });
+		// splashes on the first roof, flame jet or street it meets
+		let hit = d.y >= GROUND ? 'ground' : null;
+		for (const b of L.buildings) {
+			if (hit) break;
+			if (b.tiers.some(t => d.x > t.x && d.x < t.x + t.w && d.y > t.y)) hit = b;
+			else if (b.fire && b.fire.state === 'burning' && b.jets.some(j => jetOn(j, time) && d.y > j.y - 9 && d.y < j.y + 9 && (d.x - j.x) * j.dir > 0 && (d.x - j.x) * j.dir < j.len)) hit = b;
+		}
+		if (!hit) continue;
+		drops.splice(i, 1);
+		for (let k = 0; k < 18; k++) { const a = -Math.PI * (0.1 + Math.random() * 0.8), v = 60 + Math.random() * 120; spark(d.x, d.y, { vx: Math.cos(a) * v, vy: Math.sin(a) * v, grav: 500, life: 0.5 + Math.random() * 0.3, size: 6 + Math.random() * 6, col: [0.4, 0.8, 1] }); }
+		if (hit !== 'ground' && hit.fire && hit.fire.state === 'burning') douse(hit); else sfx.splash();
+	}
+}
 // flames, smoke and embers on burning buildings in view (visual only)
 function fireFx(dt) {
 	for (const b of L.buildings) {
 		if (!b.fire || b.fire.state === 'none') continue;
 		const top = b.tiers[b.tiers.length - 1], midX = b.x + b.w / 2;
 		if (!inView(midX, top.y, b.w + 200) && !inView(midX, GROUND - 100, b.w + 200)) continue;
-		const out = b.fire.state === 'out', heat = out ? 0 : 0.6 + 0.4 * Math.min(1, b.fire.t / 20);
+		const out = b.fire.state !== 'burning', wet = b.fire.state === 'doused', heat = out ? 0 : 0.6 + 0.4 * Math.min(1, b.fire.t / 20);
 		const fcol = () => rainbow(0.02 + Math.random() * 0.1);
 		if (!out) {
 			// roof flames along every tier top, extra-fierce on the burning patches
@@ -1685,7 +1731,7 @@ function fireFx(dt) {
 			if (Math.random() < dt * 12) spark(b.x + Math.random() * b.w, top.y, { vx: (Math.random() - 0.5) * 40, vy: -60 - Math.random() * 80, life: 1.5 + Math.random(), size: 3 + Math.random() * 3, tw: 20, col: [1, 0.45 + Math.random() * 0.3, 0.1] });
 		}
 		// smoke (still smoulders after it burns out)
-		if (Math.random() < dt * (out ? 3 : 6)) spark(b.x + Math.random() * b.w, top.y - 10, { shape: 3, spin: 0, vx: 8 + Math.random() * 12, vy: -25 - Math.random() * 20, life: 2.5 + Math.random() * 1.5, size: 30 + Math.random() * 40, col: out ? [0.12, 0.11, 0.11] : [0.3, 0.14, 0.08] });
+		if (Math.random() < dt * (wet ? 1.5 : out ? 3 : 6)) spark(b.x + Math.random() * b.w, top.y - 10, { shape: 3, spin: 0, vx: 8 + Math.random() * 12, vy: -25 - Math.random() * 20, life: 2.5 + Math.random() * 1.5, size: 30 + Math.random() * 40, col: wet ? [0.16, 0.18, 0.2] : out ? [0.12, 0.11, 0.11] : [0.3, 0.14, 0.08] });
 	}
 }
 
@@ -1789,7 +1835,17 @@ function drawPig(D, hx, hy, fx, fy, t) {
 	sg(P(0.74, -5.5), P(0.84, -6.5 - k)); sg(P(0.74, 5.5), P(0.84, 6.5 + k));
 	const tc = P(0.95, 0); D.circle(tc[0], tc[1], 1.8, 7);                                           // curly tail
 }
-const DRAW_CREATURE = { dog: drawDog, dino: drawDino, dragon: drawDragon, unicorn: drawUnicorn, cat: drawCat, bunny: drawBunny, pig: drawPig };
+function drawHippo(D, hx, hy, fx, fy, t) { // hanging on by its stubby front feet
+	const { sg, pl, el, ci, P } = creatureKit(D, hx, hy, fx, fy, TYPES.hippo.L), k = Math.sin(t) * 1, w = Math.sin(time * 6) * 0.6;
+	sg(P(0, -2), P(0.2, -3.5)); sg(P(0, 2), P(0.2, 3.5));                                           // stubby arms up
+	el(0.27, 1.5, 5, 5.5); el(0.3, 6.5, 2.4, 4);                                                    // big head + wide muzzle
+	ci(0.25, 7.5, 0.6); ci(0.35, 7.5, 0.6); ci(0.2, 2.5, 0.7);                                      // nostrils + eye
+	ci(0.14, -2.5 - w, 1.2); ci(0.12, 2 + w, 1.1);                                                  // little ears
+	el(0.62, 0, TYPES.hippo.L * 0.3, 8.5);                                                          // barrel body
+	sg(P(0.8, -6), P(0.88, -6.5 - k)); sg(P(0.8, 6), P(0.88, 6.5 + k));                             // stumpy legs
+	sg(P(0.92, 0), P(0.99, w * 2));                                                                  // flicky tail
+}
+const DRAW_CREATURE = { dog: drawDog, dino: drawDino, dragon: drawDragon, unicorn: drawUnicorn, cat: drawCat, bunny: drawBunny, pig: drawPig, hippo: drawHippo };
 function drawDogWalk(D, x, y, t, dir) {
 	const s = Math.sin(t * 14) * 2.5, wag = Math.sin(time * 16) * 3;
 	D.ellipse(x, y - 8, 7.5, 3.6, 0, 12);
@@ -1954,14 +2010,20 @@ function drawHud(pulse, urgent) {
 			c.font = `bold ${8 * k}px sans-serif`; c.textAlign = 'center'; c.fillStyle = '#ffd0a0'; c.fillText('🔥 ' + Math.ceil(b.fire.dur - b.fire.t) + 's', sx(mx), by - 4 * k);
 		});
 		// boss bar
-		const total = L.buildings.filter(b => b.fire).length, burning = L.buildings.filter(b => b.fire && b.fire.state === 'burning').length, gone = L.buildings.filter(b => b.fire && b.fire.state === 'out').length;
+		const total = L.buildings.filter(b => b.fire).length, burning = L.buildings.filter(b => b.fire && b.fire.state === 'burning').length, gone = L.buildings.filter(b => b.fire && b.fire.state === 'out').length, wet = L.buildings.filter(b => b.fire && b.fire.state === 'doused').length;
 		const bw = Math.min(W - 2 * u, u * 30), bx = (W - bw) / 2, by = u * 7.6;
 		c.fillStyle = 'rgba(20,0,0,.7)'; c.fillRect(bx, by, bw, u * 0.8);
 		c.fillStyle = '#ff8a00'; c.fillRect(bx, by, bw * burning / total, u * 0.8);
 		c.fillStyle = '#5a1010'; c.fillRect(bx + bw * burning / total, by, bw * gone / total, u * 0.8);
+		c.fillStyle = '#2d7bff'; c.fillRect(bx + bw * (burning + gone) / total, by, bw * wet / total, u * 0.8);
 		c.strokeStyle = '#ff2a55'; c.lineWidth = 2; c.strokeRect(bx, by, bw, u * 0.8);
 		c.font = `bold ${u * 0.62}px monospace`; c.textAlign = 'center'; c.fillStyle = '#fff';
-		c.fillText('BOSS: INFERNO   burning ' + burning + '   burnt ' + gone + '   lost to fire ' + L.fireLost, W / 2, by + u * 0.6);
+		c.fillText('BOSS: INFERNO   burning ' + burning + '   burnt ' + gone + '   doused ' + wet + '   lost to fire ' + L.fireLost, W / 2, by + u * 0.6);
+		// water tank: one pip per bomb, under the load bar
+		const pw = u * 0.9, ph = u * 0.45, py = u * 3.08, px0 = W - u - WATER_MAX * (pw + u * 0.25) + u * 0.25;
+		for (let i = 0; i < WATER_MAX; i++) { const x = px0 + i * (pw + u * 0.25); c.strokeStyle = '#6ab8ff'; c.lineWidth = 1.5; c.strokeRect(x, py, pw, ph); if (i < heli.water) { c.fillStyle = '#2d9bff'; c.fillRect(x + 2, py + 2, pw - 4, ph - 4); } }
+		c.textAlign = 'right'; c.font = `${u * 0.5}px monospace`; c.fillStyle = heli.water ? '#9fd4ff' : (Math.sin(time * 8) > 0 ? '#ff2a55' : '#9fd4ff');
+		c.fillText(heli.water ? 'WATER [SPACE]' : 'EMPTY — LAND ON HOSPITAL', px0 - u * 0.4, py + u * 0.42);
 	}
 	{ // speaker icon (click / tap to mute, or press M)
 		const b = muteBtn(), x = b.x * DPR, y = b.y * DPR, r = u * 0.45;
@@ -2093,8 +2155,8 @@ function drawMinimap(c, u) {
 		miniCache = { key, cv };
 	}
 	c.drawImage(miniCache.cv, mx, my);
-	if (L.boss) for (const b of L.buildings) if (b.fire && b.fire.state !== 'none') { // burning = flickering orange, burnt out = dark red
-		c.fillStyle = b.fire.state === 'burning' ? `rgba(255,${120 + 60 * Math.sin(time * 9 + b.x)},0,0.85)` : 'rgba(90,16,16,0.9)';
+	if (L.boss) for (const b of L.buildings) if (b.fire && b.fire.state !== 'none') { // burning = flickering orange, burnt out = dark red, doused = blue
+		c.fillStyle = b.fire.state === 'burning' ? `rgba(255,${120 + 60 * Math.sin(time * 9 + b.x)},0,0.85)` : b.fire.state === 'doused' ? 'rgba(40,110,255,0.7)' : 'rgba(90,16,16,0.9)';
 		for (const t of b.tiers) c.fillRect(fx(t.x), fy(t.y), Math.max(1, t.w / L.worldW * mw), fy(GROUND) - fy(t.y));
 	}
 	c.save(); c.beginPath(); c.rect(mx, my, mw, mh); c.clip();
